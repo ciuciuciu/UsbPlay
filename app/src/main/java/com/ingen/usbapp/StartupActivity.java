@@ -13,7 +13,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.Observer;
 
-
 import com.ingen.usbapp.playlist.MediaObject;
 import com.ingen.usbapp.playlist.PlaylistHelper;
 import com.ingen.usbapp.ui.MainActivity;
@@ -88,7 +87,7 @@ public class StartupActivity extends BaseActivity {
 
     private void discoverDevice() {
         String actionString = getPackageName() + ".action.USB_PERMISSION";
-        PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(actionString), 0);
+        PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(actionString), PendingIntent.FLAG_IMMUTABLE);
         UsbManager usbManager = (UsbManager) getSystemService(USB_SERVICE);
 
         HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
@@ -120,7 +119,6 @@ public class StartupActivity extends BaseActivity {
             @Override
             public void onChanged(UsbMediaStatus usbMediaStatus) {
                 Logger.d("LiveDataCopyDataFromUsb: " + usbMediaStatus.getText());
-
                 switch (usbMediaStatus) {
                     case NOT_FOUND_USB:
                     case USB_COPY_COMPLETED:

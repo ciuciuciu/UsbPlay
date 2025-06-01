@@ -9,6 +9,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 
@@ -105,7 +106,10 @@ public class LifeTimeService extends Service implements Runnable {
         launchIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
 
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, launchIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                        ? PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                        : PendingIntent.FLAG_UPDATE_CURRENT
+        );
         builder.setContentIntent(contentIntent);
 
         Notification notification = builder.build();

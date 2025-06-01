@@ -22,7 +22,7 @@ import androidx.core.app.NotificationCompat;
 
 import com.ingen.usbapp.Configuration;
 import com.ingen.usbapp.R;
-import com.ingen.usbapp.ui.common.BaseActivity;
+import com.ingen.usbapp.ui.MainActivity;
 import com.ingen.usbapp.utils.ApplicationUtils;
 import com.ingen.usbapp.utils.Logger;
 import com.ingen.usbapp.utils.MyLifecycleHandler;
@@ -124,7 +124,7 @@ public class RunningService extends Service implements Runnable {
             return false;
         }
 
-        if (runningActivity instanceof BaseActivity) {
+        if (runningActivity instanceof MainActivity) {
             return true;
         }
 
@@ -174,7 +174,7 @@ public class RunningService extends Service implements Runnable {
         builder.setDefaults(Notification.DEFAULT_LIGHTS);
 
         String message = "Running service";
-        builder.setSmallIcon(R.mipmap.ic_launcher)
+        builder.setSmallIcon(R.drawable.ic_launcher)
                 .setAutoCancel(false)
                 .setPriority(Notification.PRIORITY_MAX)
                 .setOngoing(true)

@@ -81,7 +81,7 @@ public class LifeTimeService extends Service implements Runnable {
         assert notificationManager != null;
 
         NotificationCompat.Builder builder = null;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             int importance = NotificationManager.IMPORTANCE_HIGH;
             NotificationChannel notificationChannel = new NotificationChannel("ID", "Name", importance);
             notificationManager.createNotificationChannel(notificationChannel);
@@ -93,7 +93,7 @@ public class LifeTimeService extends Service implements Runnable {
         builder.setDefaults(Notification.DEFAULT_LIGHTS);
 
         String message = "LifeTime service";
-        builder.setSmallIcon(R.mipmap.ic_launcher)
+        builder.setSmallIcon(R.drawable.ic_launcher)
                 .setAutoCancel(false)
                 .setPriority(Notification.PRIORITY_MAX)
                 .setOngoing(true)

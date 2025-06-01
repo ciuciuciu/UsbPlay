@@ -46,13 +46,16 @@
             android:windowSoftInputMode="stateHidden" />
 
         <service
+            android:name=".services.RestartService"
+            android:exported="false"
+            android:process=":restartservice" />
+        <service
             android:name=".services.LifeTimeService"
             android:exported="false"
             android:process=":lifeTimeService" />
         <service
             android:name=".services.RunningService"
             android:exported="false" />
-
         <service
             android:name=".services.RestartApplicationService"
             android:exported="false"

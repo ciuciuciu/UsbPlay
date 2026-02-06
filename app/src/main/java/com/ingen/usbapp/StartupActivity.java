@@ -8,9 +8,10 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.lifecycle.Observer;
 
 import com.ingen.usbapp.playlist.MediaObject;
@@ -28,29 +29,48 @@ import java.util.List;
 
 public class StartupActivity extends BaseActivity {
 
+    /**
+     * Action xin USB permission
+     */
+    private static final String ACTION_USB_PERMISSION = BuildConfig.APPLICATION_ID + ".USB_PERMISSION";
+
     private TextView txtTitle;
 
-    private UsbHelper mUsbHelper;
+    private UsbManager usbManager;
+    private UsbHelper usbHelper;
 
+    // Queue of devices (we will request permission sequentially)
+    private List<UsbDevice> pendingDevices = new ArrayList<>();
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
+    // BroadcastReceiver must be registered before calling requestPermission()
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
-
+        @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            String actionString = getPackageName() + ".action.USB_PERMISSION";
+            if (action == null) return;
 
-            if (actionString.equals(action)) {
-                synchronized (this) {
-                    UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-
-                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        if (device != null) {
-                            Logger.d("call method to set up device communication");
-                            copyDataFromUsb();
-                        }
-                    } else {
-                        Logger.d("permission denied for device " + device);
+            if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                Logger.d("Receiver: USB attached -> " + device);
+                if (device != null) {
+                    // Add to queue and process if not currently waiting
+                    if (!containsDeviceByName(pendingDevices, device)) {
+                        pendingDevices.add(device);
                     }
+                    processNextDeviceInQueue();
                 }
+            } else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                Logger.d("Receiver: USB detached -> " + device);
+                // Remove from queue if present
+                removeDeviceByName(pendingDevices, device);
+            } else if (ACTION_USB_PERMISSION.equals(action)) {
+
+                handler.postDelayed(() -> {
+                    scanAndProcessUsbDevicesAtStartup();
+                }, 5000);
             }
         }
     };
@@ -64,63 +84,115 @@ public class StartupActivity extends BaseActivity {
     protected void initActivity(Bundle savedInstanceState) {
         txtTitle = findViewById(R.id.txtTitle);
 
-        mUsbHelper = new UsbHelper();
+        usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        usbHelper = new UsbHelper();
+
+        // Register receiver immediately so we don't miss permission broadcasts
+        registerUsbReceiver();
+
+        // Start scanning and processing devices
+        scanAndProcessUsbDevicesAtStartup();
 
         initObservable();
-
-        IntentFilter filter = new IntentFilter(getPackageName() + ".action.USB_PERMISSION");
-        registerReceiver(usbReceiver, filter);
-        discoverDevice();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(usbReceiver);
+        handler.removeCallbacksAndMessages(null);
+        try {
+            unregisterReceiver(usbReceiver);
+        } catch (Exception e) {
+            Logger.d("Receiver already unregistered or error unregister");
+        }
     }
 
-    private void discoverDevice() {
-        String actionString = getPackageName() + ".action.USB_PERMISSION";
-        PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(actionString), PendingIntent.FLAG_IMMUTABLE);
-        UsbManager usbManager = (UsbManager) getSystemService(USB_SERVICE);
+    // -------------------------
+    // Startup scanning logic
+    // -------------------------
+    private void scanAndProcessUsbDevicesAtStartup() {
+        if (usbManager == null) {
+            Logger.d("usbManager is null");
+            return;
+        }
 
         HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
-        Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
+        if (deviceList == null || deviceList.isEmpty()) {
+            Logger.d("No USB devices found at startup.");
+            return;
+        }
 
-        List<UsbDevice> notPermissionDevices = new ArrayList<>();
-        while (deviceIterator.hasNext()) {
-            UsbDevice usbDevice = deviceIterator.next();
-            if (usbDevice != null && usbManager.hasPermission(usbDevice) == false) {
-                notPermissionDevices.add(usbDevice);
+        // Fill pending queue with discovered devices
+        Iterator<UsbDevice> iterator = deviceList.values().iterator();
+        while (iterator.hasNext()) {
+            UsbDevice dev = iterator.next();
+            if (!containsDeviceByName(pendingDevices, dev)) {
+                pendingDevices.add(dev);
             }
         }
 
-        if (notPermissionDevices.size() > 0) {
-            usbManager.requestPermission(notPermissionDevices.get(0), permissionIntent);
-        } else {
-            copyDataFromUsb();
-        }
-
+        // Start processing queue
+        processNextDeviceInQueue();
     }
 
-    private void copyDataFromUsb() {
-        mUsbHelper.copyDataFromUsb(this);
+    /**
+     * Process next device in queue:
+     * - If device has permission -> call copy immediately
+     * - If device has no permission -> request permission and wait for callback
+     */
+    private void processNextDeviceInQueue() {
+        // pop first device
+        if (pendingDevices.isEmpty()) {
+            Logger.d("Device queue empty");
+            return;
+        }
+
+        UsbDevice device = pendingDevices.remove(0);
+        if (device == null) {
+            processNextDeviceInQueue();
+            return;
+        }
+
+        Logger.d("Processing device: " + device.getDeviceName());
+
+        if (usbManager.hasPermission(device)) {
+            Logger.d("Has permission for device -> start copy immediately");
+
+            usbHelper.copyDataFromUsb(this);
+
+            // continue to next device
+            processNextDeviceInQueue();
+            return;
+        }
+
+        // Otherwise request permission and wait for result
+        Logger.d("No permission -> request for device: " + device.getDeviceName());
+        requestUsbPermissionForDevice(device);
+    }
+
+    private void requestUsbPermissionForDevice(UsbDevice device) {
+        if (device == null || usbManager == null) return;
+
+        Intent intent = new Intent(ACTION_USB_PERMISSION);
+        // ensure the pending intent targets our app only
+        intent.setPackage(getPackageName());
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this,
+                device.getDeviceId(), // use deviceId as requestCode to differentiate
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        usbManager.requestPermission(device, pendingIntent);
     }
 
 
     private void initObservable() {
-        mUsbHelper.getLiveDataCopyDataFromUsb().observe(this, new Observer<UsbMediaStatus>() {
+        usbHelper.getLiveDataCopyDataFromUsb().observe(this, new Observer<UsbMediaStatus>() {
             @Override
             public void onChanged(UsbMediaStatus usbMediaStatus) {
-                Logger.d("LiveDataCopyDataFromUsb: " + usbMediaStatus.getText());
+                Logger.d("LiveDataCopyDataFromUsb: " + usbMediaStatus);
                 switch (usbMediaStatus) {
-                    case NOT_FOUND_USB:
                     case USB_COPY_COMPLETED:
                         ArrayList<MediaObject> playlist = PlaylistHelper.getPlaylist(StartupActivity.this);
                         if (playlist.size() == 0) {
@@ -133,5 +205,40 @@ public class StartupActivity extends BaseActivity {
                 }
             }
         });
+    }
+
+    // -------------------------
+    // Receiver registration
+    // -------------------------
+    private void registerUsbReceiver() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        filter.addAction(ACTION_USB_PERMISSION);
+        registerReceiver(usbReceiver, filter);
+    }
+
+    // -------------------------
+    // Helpers
+    // -------------------------
+    private boolean containsDeviceByName(List<UsbDevice> list, UsbDevice device) {
+        if (list == null || device == null) return false;
+        for (UsbDevice d : list) {
+            if (d != null && d.getDeviceName() != null && d.getDeviceName().equals(device.getDeviceName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void removeDeviceByName(List<UsbDevice> list, UsbDevice device) {
+        if (list == null || device == null) return;
+        List<UsbDevice> toRemove = new ArrayList<>();
+        for (UsbDevice d : list) {
+            if (d != null && d.getDeviceName() != null && d.getDeviceName().equals(device.getDeviceName())) {
+                toRemove.add(d);
+            }
+        }
+        list.removeAll(toRemove);
     }
 }

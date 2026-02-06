@@ -152,34 +152,5 @@ public class MainActivity extends BaseActivity {
                 System.exit(0);
             });
         });
-
-        /*new AsyncTask<Void, Void, Void>() {
-            @Override
-            protected void onPreExecute() {
-                super.onPreExecute();
-                dismissKeyboard();
-            }
-
-            @Override
-            protected Void doInBackground(Void... voids) {
-                Configuration.saveAppRunning(MainActivity.this, false);
-                try {
-                    Thread.sleep(150);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                ForegroundServiceLauncher.getInstance().stopService(MainActivity.this, LifeTimeService.class);
-                ForegroundServiceLauncher.getInstance().stopService(MainActivity.this, RunningService.class);
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(Void aVoid) {
-                super.onPostExecute(aVoid);
-                finishAndRemoveTask();
-                finishAffinity();
-                System.exit(0);
-            }
-        }.execute();*/
     }
 }

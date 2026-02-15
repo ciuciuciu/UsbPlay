@@ -12,7 +12,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import com.ingen.usbapp.R;
-import com.ingen.usbapp.StartupActivity;
+import com.ingen.usbapp.ui.MainActivity;
 import com.ingen.usbapp.utils.Logger;
 
 public class BootStartupService extends Service {
@@ -34,7 +34,7 @@ public class BootStartupService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         // Mở app (MainActivity)
         Logger.d("onStartCommand Mở app (MainActivity)");
-        Intent activityIntent = new Intent(this, StartupActivity.class);
+        Intent activityIntent = new Intent(this, MainActivity.class);
         activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(activityIntent);
 

@@ -5,8 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import com.ingen.usbapp.StartupActivity;
-import com.ingen.usbapp.services.RestartApplicationService;
 import com.ingen.usbapp.utils.Logger;
 
 public class BootUpReceiver extends BroadcastReceiver {

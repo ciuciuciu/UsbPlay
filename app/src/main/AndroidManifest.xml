@@ -30,7 +30,7 @@
             android:value="1.0" />
 
         <activity
-            android:name=".StartupActivity"
+            android:name=".ui.MainActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|navigation"
             android:exported="true"
             android:screenOrientation="portrait"
@@ -42,11 +42,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".ui.MainActivity"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|navigation"
-            android:windowSoftInputMode="stateHidden" />
 
         <service
             android:name=".services.RestartService"

@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.Intent;
 
 import com.ingen.usbapp.services.RestartService;
+import com.ingen.usbapp.ui.MainActivity;
 import com.ingen.usbapp.utils.MyExceptionHandler;
 import com.ingen.usbapp.utils.MyLifecycleHandler;
 
@@ -19,7 +20,7 @@ public class MyApplication extends Application {
 
         registerActivityLifecycleCallbacks(new MyLifecycleHandler());
 
-        Thread.setDefaultUncaughtExceptionHandler(new MyExceptionHandler(this, StartupActivity.class));
+        Thread.setDefaultUncaughtExceptionHandler(new MyExceptionHandler(this, MainActivity.class));
     }
 
     public static void restartApplication() {

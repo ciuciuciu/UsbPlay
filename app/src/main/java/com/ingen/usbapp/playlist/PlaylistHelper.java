@@ -40,11 +40,10 @@ public class PlaylistHelper {
 
 
     private static File getMediaDir(Context context, String folderName) {
-        File parentDir = new File(context.getFilesDir().getParent());
-        File imagesDir = new File(parentDir, folderName);
-        if (imagesDir.exists() == false) {
-            imagesDir.mkdir();
+        File targetDir = new File(context.getFilesDir(), folderName);
+        if (targetDir.exists() == false) {
+            targetDir.mkdir();
         }
-        return imagesDir;
+        return targetDir;
     }
 }

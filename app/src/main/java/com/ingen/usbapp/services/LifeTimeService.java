@@ -81,7 +81,7 @@ public class LifeTimeService extends Service implements Runnable {
         assert notificationManager != null;
 
         NotificationCompat.Builder builder = null;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             int importance = NotificationManager.IMPORTANCE_HIGH;
             NotificationChannel notificationChannel = new NotificationChannel("ID", "Name", importance);
             notificationManager.createNotificationChannel(notificationChannel);
